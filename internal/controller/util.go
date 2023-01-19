@@ -1,11 +1,32 @@
 package controller
 
 import (
+	spicev1 "github.com/notfromstatefarm/namespice/api/types/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/strings/slices"
 	"strings"
 )
+
+func mapToUnstructured(ns *v1.Namespace, classes []*spicev1.NamespaceClass) []unstructured.Unstructured {
+	objs := make([]unstructured.Unstructured, 0)
+	for _, class := range classes {
+		classCopy := spicev1.NamespaceClass{}
+		class.DeepCopyInto(&classCopy)
+		for _, resource := range classCopy.Resources {
+			obj := unstructured.Unstructured{Object: resource}
+			obj.SetNamespace(ns.Name)
+			l := obj.GetLabels()
+			if l == nil {
+				l = make(map[string]string)
+			}
+			l[ObjectLabel] = class.Name
+			obj.SetLabels(l)
+			objs = append(objs, *obj.DeepCopy())
+		}
+	}
+	return objs
+}
 
 func areObjectReferencesEqual(obj1 unstructured.Unstructured, obj2 unstructured.Unstructured) bool {
 	obj1Kind := obj1.GetObjectKind().GroupVersionKind().String()

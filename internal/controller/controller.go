@@ -37,28 +37,7 @@ type Controller struct {
 	hasInitiallyReconciled bool
 }
 
-func (c *Controller) mapToUnstructured(ns *v1.Namespace, classes []*spicev1.NamespaceClass) []unstructured.Unstructured {
-	objs := make([]unstructured.Unstructured, 0)
-	for _, class := range classes {
-		classCopy := spicev1.NamespaceClass{}
-		class.DeepCopyInto(&classCopy)
-		for _, resource := range classCopy.Resources {
-			obj := unstructured.Unstructured{Object: resource}
-			obj.SetNamespace(ns.Name)
-			l := obj.GetLabels()
-			if l == nil {
-				l = make(map[string]string)
-			}
-			l[ObjectLabel] = class.Name
-			obj.SetLabels(l)
-			objs = append(objs, *obj.DeepCopy())
-		}
-	}
-	return objs
-}
-
 func (c *Controller) executeDelta(delta ObjectDelta) {
-
 	groupResources, err := restmapper.GetAPIGroupResources(c.kubeclient)
 	if err != nil {
 		log.WithError(err).Errorln("failed to get api group resources")
@@ -121,8 +100,8 @@ func (c *Controller) executeDelta(delta ObjectDelta) {
 
 func (c *Controller) cleanup() {
 	// in case something was changed or deleted while the controller wasn't running, this will fully reconcile everything
-	// and clean up any orphans by querying all available Kubernetes API groups. Obviously this is expensive, so it's only
-	// done on initial start, after both caches have synced
+	// and clean up any orphans by querying all available Kubernetes API groups. This is taxing on the Kubernetes API and
+	// is only run on initial start and every 10 minutes.
 
 	log.Infoln("starting cleanup")
 	exists := c.getExistingObjects()
@@ -133,7 +112,7 @@ func (c *Controller) cleanup() {
 	for _, nsObj := range c.namespaceStore.List() {
 		ns := nsObj.(*v1.Namespace)
 		classes := c.getNamespaceClasses(ns, "")
-		objs := c.mapToUnstructured(ns, classes)
+		objs := mapToUnstructured(ns, classes)
 		shouldExist = append(shouldExist, objs...)
 	}
 
@@ -146,8 +125,8 @@ func (c *Controller) cleanup() {
 }
 
 func (c *Controller) reconcile(ns *v1.Namespace, oldClasses []*spicev1.NamespaceClass, newClasses []*spicev1.NamespaceClass) {
-	oldUnstructured := c.mapToUnstructured(ns, oldClasses)
-	newUnstructured := c.mapToUnstructured(ns, newClasses)
+	oldUnstructured := mapToUnstructured(ns, oldClasses)
+	newUnstructured := mapToUnstructured(ns, newClasses)
 	delta := calculateObjectDelta(oldUnstructured, newUnstructured)
 	c.executeDelta(delta)
 }
