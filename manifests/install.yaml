@@ -65,3 +65,4 @@ spec:
   containers:
     - name: controller
       image: notfromstatefarm/namespice:latest
+      imagePullPolicy: Always
