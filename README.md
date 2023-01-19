@@ -13,8 +13,14 @@ helps you DRY things up and centrally manage these resources via sets of `Namesp
 
 The controller will watch for changes and instantly create and delete resources as needed.
 
-### Install
+### Quick install (testing only)
+`curl https://raw.githubusercontent.com/notfromstatefarm/namespice/main/manifests/install.yaml | kubectl apply -f -`
 
+Note that with the default manifests namespice will have full unrestricted access to your cluster. Do not use this in production.
+
+### Install just the CRDs
+
+`curl https://raw.githubusercontent.com/notfromstatefarm/namespice/main/manifests/crd.yaml | kubectl apply -f -`
 
 ### NamespaceClass example
 ```yaml
