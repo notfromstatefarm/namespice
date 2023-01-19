@@ -64,5 +64,4 @@ spec:
   serviceAccountName: namespice-controller
   containers:
     - name: controller
-      image: notfromstatefarm/namespice
-      imagePullPolicy: Never
+      image: notfromstatefarm/namespice:latest
