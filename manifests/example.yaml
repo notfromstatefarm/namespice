@@ -1,0 +1,72 @@
+apiVersion: namespice.io/v1
+kind: NamespaceClass
+metadata:
+  name: lang-english
+resources:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: language
+  data:
+    greeting: "hello world!"
+---
+apiVersion: namespice.io/v1
+kind: NamespaceClass
+metadata:
+  name: lang-spanish
+resources:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: language
+    data:
+      greeting: "hola mundo!"
+---
+apiVersion: namespice.io/v1
+kind: NamespaceClass
+metadata:
+  name: lang-common
+resources:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: greeter
+      labels:
+        app: greeter
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: greeter
+      template:
+        metadata:
+          labels:
+            app: greeter
+        spec:
+          containers:
+            - name: greeter
+              image: busybox
+              command:
+                - sh
+                - -c
+                - "while true; do echo $GREETING; sleep 2; done"
+              env:
+                - name: GREETING
+                  valueFrom:
+                    configMapKeyRef:
+                      name: language
+                      key: greeting
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: english
+  annotations:
+    namespice.io/class: lang-common,lang-english
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spanish
+  annotations:
+    namespice.io/class: lang-common,lang-spanish
